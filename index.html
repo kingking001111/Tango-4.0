@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tango Logic - Professional</title>
+    <title>Tango Logic Pro - Infinite Puzzles</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --bg-color: #1b222b;      /* 外部背景 */
-            --board-bg: #2d3843;      /* 棋盤底座顏色 */
-            --cell-playable: #1b222b; /* 玩家格：深色 */
-            --cell-fixed: #94a3b8;    /* 題目格：淺灰色 */
+            --bg-color: #1b222b;
+            --board-bg: #2d3843;
+            --cell-playable: #1b222b;
+            --cell-fixed: #94a3b8;
             --text-color: #ffffff;
-            --symbol-color: #94a3b8;
-            --error-glow: rgba(239, 68, 68, 0.4);
             --linkedin-blue: #0073b1;
+            --error-glow: rgba(239, 68, 68, 0.4);
         }
 
         body {
@@ -22,30 +21,20 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; margin: 0; padding-top: 40px;
+            min-height: 100vh; margin: 0; padding-top: 20px;
         }
 
-        h1 { font-size: 26px; font-weight: 600; letter-spacing: 3px; margin-bottom: 20px; }
+        .header { font-size: 24px; font-weight: 600; letter-spacing: 4px; margin-bottom: 15px; }
 
-        /* 難度切換 */
-        .diff-selector { margin-bottom: 25px; display: flex; gap: 10px; }
-        .diff-btn {
-            background: transparent; border: 1px solid #3e4c5a; color: #94a3b8;
-            padding: 6px 18px; border-radius: 20px; cursor: pointer; transition: 0.2s;
-            font-size: 14px;
-        }
-        .diff-btn.active { border-color: var(--linkedin-blue); color: white; background: var(--linkedin-blue); }
-
-        /* 棋盤佈局 */
+        /* 棋盤容器 */
         .board-container {
             background-color: var(--board-bg);
-            padding: 8px; border-radius: 6px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            padding: 10px; border-radius: 8px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
         }
 
         .board {
             display: grid;
-            /* 6x6 格子，中間夾著 5 個符號間隙 */
             grid-template-columns: 60px 5px 60px 5px 60px 5px 60px 5px 60px 5px 60px;
             grid-template-rows: 60px 5px 60px 5px 60px 5px 60px 5px 60px 5px 60px;
             user-select: none;
@@ -54,66 +43,57 @@
         .cell {
             width: 60px; height: 60px; background-color: var(--cell-playable);
             display: flex; justify-content: center; align-items: center;
-            font-size: 2.2rem; cursor: pointer;
+            font-size: 2.2rem; cursor: pointer; transition: 0.1s;
         }
         
-        /* 題目格 */
         .cell.fixed { background-color: var(--cell-fixed); cursor: default; }
 
         .symbol {
             display: flex; justify-content: center; align-items: center;
             font-size: 1.1rem; color: #cbd5e1; font-weight: bold;
-            pointer-events: none; z-index: 10;
+            pointer-events: none;
         }
 
-        /* 衝突動畫 */
+        /* 狀態效果 */
         .cell.conflict { background-color: var(--error-glow); animation: shake 0.3s; }
         .error-line { outline: 2px solid var(--error-glow); z-index: 5; }
+        .hint-flash { animation: flash 0.8s; }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-3px); }
             75% { transform: translateX(3px); }
         }
+        @keyframes flash {
+            0% { background: #22c55e; }
+            100% { background: var(--cell-playable); }
+        }
 
-        /* 核心按鈕 */
-        .action-group { margin-top: 30px; display: flex; gap: 15px; }
+        /* 按鈕區 */
+        .action-group { margin-top: 25px; display: flex; gap: 12px; }
         .btn {
             background-color: #3e4c5a; color: white; border: none;
-            padding: 12px 35px; border-radius: 30px; font-size: 16px;
+            padding: 12px 30px; border-radius: 30px; font-size: 15px;
             cursor: pointer; transition: 0.2s; font-weight: 500;
         }
         .btn:hover { background-color: #4e5e6e; }
         .btn-main { background-color: var(--linkedin-blue); }
 
-        /* 規則區塊 */
+        /* 規則與快捷鍵區 */
         .rules-card {
-            margin-top: 40px; width: 380px; padding: 20px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 14px; line-height: 1.6; color: #94a3b8;
+            margin-top: 30px; width: 360px; padding: 18px;
+            background-color: rgba(255, 255, 255, 0.04);
+            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13.5px; line-height: 1.6; color: #94a3b8;
         }
-        .rules-card h3 { color: white; margin-top: 0; font-size: 16px; margin-bottom: 10px; }
-        .rules-card ul { padding-left: 20px; margin-bottom: 0; }
-        .rules-card li { margin-bottom: 8px; }
-        .shortcut-hint { color: var(--linkedin-blue); font-weight: bold; margin-top: 10px; display: block; }
-
-        .hint-flash { animation: flash 0.8s; }
-        @keyframes flash {
-            0% { background: #22c55e; }
-            100% { background: var(--cell-playable); }
-        }
+        .rules-card h3 { color: white; margin: 0 0 10px 0; font-size: 15px; }
+        .rules-card ul { padding-left: 18px; margin: 0; }
+        .shortcut-hint { color: var(--linkedin-blue); font-weight: bold; margin-top: 12px; display: block; }
     </style>
 </head>
 <body>
 
-    <h1>Tango</h1>
-
-    <div class="diff-selector">
-        <button class="diff-btn active" onclick="setDifficulty(0, this)">簡單</button>
-        <button class="diff-btn" onclick="setDifficulty(1, this)">普通</button>
-        <button class="diff-btn" onclick="setDifficulty(2, this)">困難</button>
-    </div>
+    <div class="header">Tango</div>
 
     <div class="board-container">
         <div class="board" id="board"></div>
@@ -129,52 +109,72 @@
         <h3>遊玩方式</h3>
         <ul>
             <li>填入網格，讓每格包含 🟡 或 🔷。</li>
-            <li>不論垂直或水平方向，相鄰的圖示不得超過 2 個。</li>
-            <li>每列與每行都必須擁有相同數量的 🟡 和 🔷。</li>
-            <li><strong>=</strong> 符號分隔的格子必須為相同類型。</li>
-            <li><strong>×</strong> 符號分隔的格子必須為不同類型。</li>
+            <li>相鄰（水平/垂直）的圖示不得超過 2 個。</li>
+            <li>每行與每列的 🟡 和 🔷 數量必須相等。</li>
+            <li><strong>=</strong> 符號兩側必須相同；<strong>×</strong> 符號兩側必須不同。</li>
         </ul>
-        <span class="shortcut-hint">鍵盤快捷鍵：[D] 新題目 / [C] 清除盤面 / [F] 提示</span>
+        <span class="shortcut-hint">快捷鍵：[D] 新題目 / [C] 清除盤面 / [F] 提示</span>
     </div>
 
 <script>
-    // 多組邏輯題庫 (1:🟡, 2:🔷)
-    const PUZZLE_BANK = [
-        [ // 難度 0
-            {
-                fixed: [[0,0,1], [0,1,1], [1,5,2], [2,5,2], [5,0,2], [5,1,2]],
-                hSigns: [{r:3, c:2, type:'='}], vSigns: [{r:2, c:0, type:'x'}],
-                solution: [[1,1,2,2,1,2],[2,2,1,1,2,1],[1,1,2,2,1,2],[2,2,1,1,2,1],[1,1,2,2,1,2],[2,2,1,1,2,1]]
-            },
-            {
-                fixed: [[1,1,1], [1,2,1], [4,3,2], [4,4,2]],
-                hSigns: [{r:0, c:2, type:'x'}], vSigns: [{r:0, c:0, type:'='}],
-                solution: [[1,2,2,1,1,2],[2,1,1,2,2,1],[1,2,2,1,1,2],[2,1,1,2,2,1],[1,2,2,1,1,2],[2,1,1,2,2,1]]
-            }
-        ],
-        [ // 難度 1
-            {
-                fixed: [[0,2,1], [1,4,1], [4,1,1], [5,3,2]],
-                hSigns: [{r:0, c:0, type:'='}, {r:2, c:4, type:'='}], vSigns: [{r:3, c:1, type:'x'}],
-                solution: [[2,2,1,1,2,1],[1,1,2,2,1,2],[2,2,1,1,2,1],[1,2,2,1,1,2],[2,1,1,2,2,1],[1,1,2,2,1,2]]
-            }
-        ],
-        [ // 難度 2
-            {
-                fixed: [[0,0,1], [5,5,2]],
-                hSigns: [{r:1, c:2, type:'='}, {r:3, c:4, type:'x'}, {r:5, c:0, type:'='}],
-                vSigns: [{r:0, c:5, type:'x'}, {r:2, c:0, type:'='}],
-                solution: [[1,2,1,2,1,2],[1,2,2,1,1,2],[2,1,1,2,2,1],[2,1,2,1,2,1],[1,2,1,2,1,2],[2,1,2,1,2,1]]
-            }
-        ]
+    // 基礎解答庫 (用於變換生成上千種題目)
+    const BASE_SOLUTIONS = [
+        [[1,1,2,1,2,2],[2,2,1,2,1,1],[1,1,2,2,1,2],[2,2,1,1,2,1],[1,2,1,1,2,2],[2,1,2,2,1,1]],
+        [[2,2,1,1,2,1],[1,1,2,2,1,2],[2,1,1,2,1,2],[1,2,2,1,2,1],[2,1,2,1,1,2],[1,2,1,2,2,1]],
+        [[1,2,1,2,1,2],[2,1,2,1,2,1],[1,2,2,1,1,2],[2,1,1,2,2,1],[1,1,2,2,1,2],[2,2,1,1,2,1]]
     ];
 
-    let currentDiff = 0;
-    let currentPuzzle = null;
+    let currentPuzzle = { solution: [], fixed: [], hSigns: [], vSigns: [] };
     let boardState = [];
     let fixedMask = [];
 
-    function initBoard() {
+    // --- 題目生成引擎 ---
+    function generateDynamicPuzzle() {
+        // 1. 隨機選擇基礎盤面並進行變換
+        let sol = JSON.parse(JSON.stringify(BASE_SOLUTIONS[Math.floor(Math.random() * BASE_SOLUTIONS.length)]));
+        
+        // 隨機旋轉/翻轉
+        if (Math.random() > 0.5) sol = sol.map(row => row.reverse()); // 水平翻轉
+        if (Math.random() > 0.5) sol.reverse(); // 垂直翻轉
+        if (Math.random() > 0.5) { // 顏色反轉 (1變2, 2變1)
+            sol = sol.map(row => row.map(v => v === 1 ? 2 : 1));
+        }
+
+        // 2. 隨機抽取 12-15 個位置作為線索 (Fixed)
+        const fixed = [];
+        const positions = [];
+        for (let r=0; r<6; r++) for (let c=0; c<6; c++) positions.push([r,c]);
+        
+        // 洗牌算法
+        for (let i = positions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [positions[i], positions[j]] = [positions[j], positions[i]];
+        }
+
+        const clueCount = 12 + Math.floor(Math.random() * 4); // 12~15
+        for (let i = 0; i < clueCount; i++) {
+            const [r, c] = positions[i];
+            fixed.push([r, c, sol[r][c]]);
+        }
+
+        // 3. 隨機生成 3-5 個約束符號 (確保題目有挑戰性)
+        const hSigns = [], vSigns = [];
+        for (let i = 0; i < 6; i++) {
+            for (let j = 0; j < 5; j++) {
+                if (Math.random() < 0.1) {
+                    hSigns.push({r: i, c: j, type: sol[i][j] === sol[i][j+1] ? '=' : 'x'});
+                }
+                if (Math.random() < 0.1) {
+                    vSigns.push({r: j, c: i, type: sol[j][i] === sol[j+1][i] ? '=' : 'x'});
+                }
+            }
+        }
+
+        return { solution: sol, fixed, hSigns, vSigns };
+    }
+
+    // --- 遊戲邏輯 ---
+    function initUI() {
         const boardEl = document.getElementById('board');
         boardEl.innerHTML = '';
         for (let r = 0; r < 11; r++) {
@@ -192,21 +192,8 @@
         }
     }
 
-    window.addEventListener('keydown', (e) => {
-        const k = e.key.toLowerCase();
-        if (k === 'd') newGame(); else if (k === 'c') clearBoard(); else if (k === 'f') getHint();
-    });
-
-    function setDifficulty(idx, el) {
-        currentDiff = idx;
-        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-        el.classList.add('active');
-        newGame();
-    }
-
     function newGame() {
-        const bank = PUZZLE_BANK[currentDiff];
-        currentPuzzle = bank[Math.floor(Math.random() * bank.length)];
+        currentPuzzle = generateDynamicPuzzle();
         clearBoard();
         renderConstraints();
     }
@@ -253,42 +240,31 @@
 
     function validate() {
         let err = new Set();
-        // 1. 三連檢測
+        // 三連與平衡檢測 (同之前邏輯)
         for (let i = 0; i < 6; i++) {
             for (let j = 0; j < 4; j++) {
-                if (boardState[i][j] && boardState[i][j] === boardState[i][j+1] && boardState[i][j] === boardState[i][j+2]) 
-                    [0,1,2].forEach(k => err.add(`${i}-${j+k}`));
-                if (boardState[j][i] && boardState[j][i] === boardState[j+1][i] && boardState[j][i] === boardState[j+2][i]) 
-                    [0,1,2].forEach(k => err.add(`${j+k}-${i}`));
+                if (boardState[i][j] && boardState[i][j] === boardState[i][j+1] && boardState[i][j] === boardState[i][j+2]) [0,1,2].forEach(k => err.add(`${i}-${j+k}`));
+                if (boardState[j][i] && boardState[j][i] === boardState[j+1][i] && boardState[j][i] === boardState[j+2][i]) [0,1,2].forEach(k => err.add(`${j+k}-${i}`));
             }
         }
-        // 2. 數量檢測 (超過 3 個就高亮該行/列)
         for (let i = 0; i < 6; i++) {
-            let rCount = [0,0,0], cCount = [0,0,0];
-            for (let j = 0; j < 6; j++) {
-                rCount[boardState[i][j]]++;
-                cCount[boardState[j][i]]++;
-            }
-            if (rCount[1] > 3 || rCount[2] > 3) highlightLine(i, 'row');
-            if (cCount[1] > 3 || cCount[2] > 3) highlightLine(i, 'col');
+            let rC = [0,0,0], cC = [0,0,0];
+            for (let j = 0; j < 6; j++) { rC[boardState[i][j]]++; cC[boardState[j][i]]++; }
+            if (rC[1]>3 || rC[2]>3) highlight(i, 'row');
+            if (cC[1]>3 || cC[2]>3) highlight(i, 'col');
         }
-        // 3. 約束檢測
         currentPuzzle.hSigns.forEach(s => {
             const v1 = boardState[s.r][s.c], v2 = boardState[s.r][s.c+1];
-            if (v1 && v2 && ((s.type==='=' && v1!==v2) || (s.type==='x' && v1===v2))) {
-                err.add(`${s.r}-${s.c}`); err.add(`${s.r}-${s.c+1}`);
-            }
+            if (v1 && v2 && ((s.type==='=' && v1!==v2) || (s.type==='x' && v1===v2))) { err.add(`${s.r}-${s.c}`); err.add(`${s.r}-${s.c+1}`); }
         });
         currentPuzzle.vSigns.forEach(s => {
             const v1 = boardState[s.r][s.c], v2 = boardState[s.r+1][s.c];
-            if (v1 && v2 && ((s.type==='=' && v1!==v2) || (s.type==='x' && v1===v2))) {
-                err.add(`${s.r}-${s.c}`); err.add(`${s.r+1}-${s.c}`);
-            }
+            if (v1 && v2 && ((s.type==='=' && v1!==v2) || (s.type==='x' && v1===v2))) { err.add(`${s.r}-${s.c}`); err.add(`${s.r+1}-${s.c}`); }
         });
         err.forEach(k => document.getElementById(`cell-${k}`).classList.add('conflict'));
     }
 
-    function highlightLine(idx, type) {
+    function highlight(idx, type) {
         for (let i = 0; i < 6; i++) {
             const id = type === 'row' ? `cell-${idx}-${i}` : `cell-${i}-${idx}`;
             document.getElementById(id).classList.add('error-line');
@@ -296,17 +272,17 @@
     }
 
     function getHint() {
-        let targets = [];
+        let diffs = [];
         for (let r = 0; r < 6; r++) {
             for (let c = 0; c < 6; c++) {
-                if (boardState[r][c] !== currentPuzzle.solution[r][c]) targets.push({r, c});
+                if (boardState[r][c] !== currentPuzzle.solution[r][c]) diffs.push({r, c});
             }
         }
-        if (targets.length > 0) {
-            const t = targets[Math.floor(Math.random() * targets.length)];
-            boardState[t.r][t.c] = currentPuzzle.solution[t.r][t.c];
+        if (diffs.length > 0) {
+            const target = diffs[Math.floor(Math.random() * diffs.length)];
+            boardState[target.r][target.c] = currentPuzzle.solution[target.r][target.c];
             render();
-            document.getElementById(`cell-${t.r}-${t.c}`).classList.add('hint-flash');
+            document.getElementById(`cell-${target.r}-${target.c}`).classList.add('hint-flash');
             checkWin();
         }
     }
@@ -318,7 +294,12 @@
         }
     }
 
-    initBoard();
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'd') newGame(); else if (k === 'c') clearBoard(); else if (k === 'f') getHint();
+    });
+
+    initUI();
     newGame();
 </script>
 </body>
