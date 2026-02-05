@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tango Logic Pro - Master Edition</title>
+    <title>Tango Logic Pro - Delayed Feedback</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -13,7 +13,7 @@
             --cell-fixed: #94a3b8;
             --text-color: #ffffff;
             --linkedin-blue: #0073b1;
-            --error-glow: rgba(239, 68, 68, 0.4);
+            --error-red: rgba(239, 68, 68, 0.6);
             --success-green: #22c55e;
         }
 
@@ -32,10 +32,9 @@
             padding: 10px; border-radius: 8px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.5);
             transition: all 0.5s ease;
-            border: 4px solid transparent; /* 預留給勝利邊框 */
+            border: 4px solid transparent;
         }
 
-        /* 勝利時的樣式 */
         .board-container.solved {
             border-color: var(--success-green);
             box-shadow: 0 0 30px var(--success-green);
@@ -51,10 +50,14 @@
         .cell {
             width: 60px; height: 60px; background-color: var(--cell-playable);
             display: flex; justify-content: center; align-items: center;
-            font-size: 2.2rem; cursor: pointer; transition: background 0.2s;
+            font-size: 2.2rem; cursor: pointer; transition: background 0.4s ease;
+            border-radius: 2px;
         }
         
         .cell.fixed { background-color: var(--cell-fixed); cursor: default; }
+
+        /* 錯誤狀態：平滑淡入 */
+        .cell.conflict { background-color: var(--error-red); }
 
         .symbol {
             display: flex; justify-content: center; align-items: center;
@@ -62,14 +65,6 @@
             pointer-events: none;
         }
 
-        /* 提示動畫 */
-        .hint-flash { animation: flash 0.8s; }
-        @keyframes flash {
-            0% { background: var(--success-green); }
-            100% { background: var(--cell-playable); }
-        }
-
-        /* 按鈕區 */
         .action-group { margin-top: 25px; display: flex; gap: 12px; }
         .btn {
             background-color: #3e4c5a; color: white; border: none;
@@ -79,7 +74,6 @@
         .btn:hover { background-color: #4e5e6e; }
         .btn-main { background-color: var(--linkedin-blue); }
 
-        /* 規則區塊 */
         .rules-card {
             margin-top: 30px; width: 360px; padding: 18px;
             background-color: rgba(255, 255, 255, 0.04);
@@ -89,6 +83,12 @@
         .rules-card h3 { color: white; margin: 0 0 10px 0; font-size: 15px; }
         .rules-card ul { padding-left: 18px; margin: 0; }
         .shortcut-hint { color: var(--linkedin-blue); font-weight: bold; margin-top: 12px; display: block; }
+
+        .hint-flash { animation: flash 0.8s; }
+        @keyframes flash {
+            0% { background: var(--success-green); }
+            100% { background: var(--cell-playable); }
+        }
     </style>
 </head>
 <body>
@@ -127,6 +127,7 @@
     let currentPuzzle = { solution: [], fixed: [], hSigns: [], vSigns: [] };
     let boardState = [];
     let fixedMask = [];
+    let validationTimer = null; // 用於延遲檢測的計時器
 
     function generateDynamicPuzzle() {
         let sol = JSON.parse(JSON.stringify(BASE_SOLUTIONS[Math.floor(Math.random() * BASE_SOLUTIONS.length)]));
@@ -139,7 +140,7 @@
         for (let r=0; r<6; r++) for (let c=0; c<6; c++) positions.push([r,c]);
         positions.sort(() => Math.random() - 0.5);
 
-        const clueCount = 12 + Math.floor(Math.random() * 4); 
+        const clueCount = 13 + Math.floor(Math.random() * 3); 
         for (let i = 0; i < clueCount; i++) {
             const [r, c] = positions[i];
             fixed.push([r, c, sol[r][c]]);
@@ -148,8 +149,8 @@
         const hSigns = [], vSigns = [];
         for (let i = 0; i < 6; i++) {
             for (let j = 0; j < 5; j++) {
-                if (Math.random() < 0.12) hSigns.push({r: i, c: j, type: sol[i][j] === sol[i][j+1] ? '=' : 'x'});
-                if (Math.random() < 0.12) vSigns.push({r: j, c: i, type: sol[j][i] === sol[j+1][i] ? '=' : 'x'});
+                if (Math.random() < 0.15) hSigns.push({r: i, c: j, type: sol[i][j] === sol[i][j+1] ? '=' : 'x'});
+                if (Math.random() < 0.15) vSigns.push({r: j, c: i, type: sol[j][i] === sol[j+1][i] ? '=' : 'x'});
             }
         }
         return { solution: sol, fixed, hSigns, vSigns };
@@ -174,6 +175,7 @@
     }
 
     function newGame() {
+        clearTimeout(validationTimer);
         document.getElementById('main-container').classList.remove('solved');
         currentPuzzle = generateDynamicPuzzle();
         clearBoard();
@@ -187,14 +189,21 @@
             boardState[r][c] = type;
             fixedMask[r][c] = true;
         });
-        render();
+        render(true); // 強制清除所有顏色
     }
 
     function onCellClick(r, c) {
         if (fixedMask[r][c] || document.getElementById('main-container').classList.contains('solved')) return;
+        
         boardState[r][c] = (boardState[r][c] + 1) % 3;
-        render();
-        checkWin();
+        render(true); // 每次點擊先清除所有衝突紅框
+
+        // 設置延遲 1.5 秒後進行邏輯檢測
+        clearTimeout(validationTimer);
+        validationTimer = setTimeout(() => {
+            validateLogic();
+            checkWin();
+        }, 1500);
     }
 
     function renderConstraints() {
@@ -207,24 +216,42 @@
         });
     }
 
-    function render() {
+    function render(clearConflicts = false) {
         for (let r = 0; r < 6; r++) {
             for (let c = 0; c < 6; c++) {
                 const el = document.getElementById(`cell-${r}-${c}`);
                 const val = boardState[r][c];
                 el.innerText = val === 1 ? '🟡' : (val === 2 ? '🔷' : '');
                 el.className = `cell ${fixedMask[r][c] ? 'fixed' : ''}`;
+                if (clearConflicts) el.classList.remove('conflict');
+            }
+        }
+    }
+
+    // 延遲檢測邏輯
+    function validateLogic() {
+        if (document.getElementById('main-container').classList.contains('solved')) return;
+
+        for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 6; c++) {
+                const val = boardState[r][c];
+                // 如果填錯（且不是空的），顯示紅色背景
+                if (val !== 0 && val !== currentPuzzle.solution[r][c]) {
+                    document.getElementById(`cell-${r}-${c}`).classList.add('conflict');
+                }
             }
         }
     }
 
     function checkWin() {
-        // 檢查是否填滿且完全正確
         const isCorrect = boardState.every((row, r) => 
             row.every((val, c) => val === currentPuzzle.solution[r][c])
         );
 
         if (isCorrect) {
+            clearTimeout(validationTimer);
+            // 清除所有紅色背景並標示勝利
+            document.querySelectorAll('.cell').forEach(el => el.classList.remove('conflict'));
             document.getElementById('main-container').classList.add('solved');
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         }
@@ -232,6 +259,8 @@
 
     function getHint() {
         if (document.getElementById('main-container').classList.contains('solved')) return;
+        clearTimeout(validationTimer);
+        
         let diffs = [];
         for (let r = 0; r < 6; r++) {
             for (let c = 0; c < 6; c++) {
@@ -241,9 +270,14 @@
         if (diffs.length > 0) {
             const target = diffs[Math.floor(Math.random() * diffs.length)];
             boardState[target.r][target.c] = currentPuzzle.solution[target.r][target.c];
-            render();
+            render(true);
             document.getElementById(`cell-${target.r}-${target.c}`).classList.add('hint-flash');
-            checkWin();
+            
+            // 提示後也給玩家一點時間看清楚，再判斷其餘錯誤
+            validationTimer = setTimeout(() => {
+                validateLogic();
+                checkWin();
+            }, 1000);
         }
     }
 
